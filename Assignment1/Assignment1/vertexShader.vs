@@ -6,9 +6,11 @@ layout (location = 2) in vec2 aTexCoord;
 out vec3 vColor;											//Out for color
 out vec2 TexCoord;											//Out for texture
 
+uniform mat4 transform;
+
 void main()
 {
-   gl_Position = vec4(aPos.x, aPos.y, aPos.z, 1.0);			//predefined output of the vertex shader
+   gl_Position = transform * vec4(aPos.x, aPos.y, aPos.z, 1.0);			//predefined output of the vertex shader
 	vColor = aColor;										//Set the out color for the fragment shader
 	TexCoord = aTexCoord;
 };

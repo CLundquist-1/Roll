@@ -5,6 +5,10 @@
 #include<GLFW\glfw3.h>
 #include<GL\freeglut.h>
 
+#include <glm/glm.hpp>
+#include <glm/gtc/matrix_transform.hpp>
+#include <glm/gtc/type_ptr.hpp>
+
 #include<iostream>
 
 using std::cout;
@@ -13,6 +17,7 @@ using std::endl;
 void framebuffer_size_callback(GLFWwindow* window, int width, int height);
 void processInput(GLFWwindow *window);
 Shader initDrawing();
+void matMan(Shader);
 
 // settings
 const unsigned int scr_width = 800;
@@ -69,7 +74,6 @@ int main() {
 	glfwMakeContextCurrent(window);
 	glfwSetFramebufferSizeCallback(window, framebuffer_size_callback);
 
-
 	// Initialize GLEW
 	glewExperimental = true; // Needed in core profile
 	if (glewInit() != GLEW_OK) {
@@ -82,6 +86,7 @@ int main() {
 	std::cout << "Maximum nr of vertex attributes supported: " << nrAttributes << std::endl;
 
 	Shader shader = initDrawing();
+	matMan(shader);
 
 	/////////////////////////////Render Loop///////////////////////////////////////
 	while (!glfwWindowShouldClose(window))
@@ -115,6 +120,21 @@ int main() {
 	return 0;
 }
 
+/////////////////////////////////////////Vector Manipulation////////////////////////////////////////////////////////////////////
+void matMan(const Shader shader) {
+	glm::vec4 vec(1.0f, 0.0f, 0.0f, 1.0f);
+	glm::mat4 trans = glm::mat4(1.0);
+	/*trans = glm::translate(trans, glm::vec3(1.0f, 1.0f, 0.0f));
+	vec = trans * vec;
+	std::cout << vec.x << vec.y << vec.z << std::endl;*/
+
+	trans = glm::rotate(trans, glm::radians(90.0f), glm::vec3(0.0, 0.0, 1.0));
+	trans = glm::scale(trans, glm::vec3(0.5, 0.5, 0.5));
+
+	unsigned int transformLoc = glGetUniformLocation(shader.ID, "transform");
+	glUniformMatrix4fv(transformLoc, 1, GL_FALSE, glm::value_ptr(trans));
+	//Uniform location, number of matrices, transpose option, matrix data
+}
 
 /////////////////////////////////////////Generate and pass our triangle vertex data to the GPU///////////////////////////////////
 void initTriangle()
