@@ -15,6 +15,14 @@ const unsigned int scr_width = 800;
 const unsigned int scr_height = 600;
 
 
+//Triangle vertices
+const float vertices[] = {
+	-0.5f, -0.5f, 0.0f,
+	0.5f, -0.5f, 0.0f,
+	0.0f,  0.5f, 0.0f
+};
+
+
 int main() {
 	if (!glfwInit()) {
 		cout << "Failed to initialize GLFW\n";
@@ -46,11 +54,9 @@ int main() {
 		return -1;
 	}
 
-	//////////////////////////////Sets up the stay open until the user closes it part///////////////////////////////////////
-	// Ensure we can capture the escape key being pressed below
-	glfwSetInputMode(window, GLFW_STICKY_KEYS, GL_TRUE);
-
-	do {
+	/////////////////////////////Render Loop///////////////////////////////////////
+	while (!glfwWindowShouldClose(window))
+	{
 		// Draw nothing, see you in tutorial 2 !
 
 		processInput(window);
@@ -58,19 +64,10 @@ int main() {
 		glClearColor(0.2f, 0.3f, 0.3f, 1.0f);
 		glClear(GL_COLOR_BUFFER_BIT);			//There is also a depth buffer bit and stencil buffer bit
 
-		// Swap buffers
+		//Swap buffers
 		glfwSwapBuffers(window);
-		glfwPollEvents();
 
-	} // Check if the ESC key was pressed or the window was closed
-	while (glfwGetKey(window, GLFW_KEY_ESCAPE) != GLFW_PRESS &&
-		glfwWindowShouldClose(window) == 0);
-	return 0;
-
-	/////////////////////////////Render Loop///////////////////////////////////////
-	while (!glfwWindowShouldClose(window))
-	{
-		glfwSwapBuffers(window);
+		//Poll input events
 		glfwPollEvents();
 	}
 
@@ -78,11 +75,13 @@ int main() {
 	return 0;
 }
 
+/////////////////////////////////////////Change viewport to match a change in window size////////////////////////////////////////
 void framebuffer_size_callback(GLFWwindow* window, int width, int height)
 {
 	glViewport(0, 0, width, height);
 }
 
+////////////////////////////////////Check for polled input and process it/////////////////////////////////////////////////////
 void processInput(GLFWwindow *window)
 {
 	if (glfwGetKey(window, GLFW_KEY_ESCAPE) == GLFW_PRESS)
