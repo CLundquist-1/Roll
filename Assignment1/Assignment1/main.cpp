@@ -18,6 +18,9 @@ void framebuffer_size_callback(GLFWwindow* window, int width, int height);
 void processInput(GLFWwindow *window);
 Shader initDrawing();
 void matMan(Shader);
+void window_focus_callback(GLFWwindow* window, int focused);
+void mouse_callback(GLFWwindow* window, double xpos, double ypos);
+void scroll_callback(GLFWwindow* window, double xoffset, double yoffset);
 
 // settings
 const unsigned int scr_width = 800;
@@ -108,14 +111,42 @@ const glm::vec3 cubePositions[] = {
 const char *vertexShaderSource = "vertexShader.vs";
 const char *fragmentShaderSource = "fragmentShader.fs";
 
+float deltaTime = 0.0f;	// Time between current frame and last frame
+float lastFrame = 0.0f; // Time of last frame
+
+float lastX = scr_width * 0.5, lastY = scr_height * 0.5;
+
+float yaw = -90.0f, pitch = 0.0f, fov = 45.0f; //a yaw of 0 results in x=1 (a direction looking right) so we offset this initial value
+
+bool firstMouse = true;
+
+///////////////////////////Camera Stuff///////////////////////////////////
+//The long way
+/*glm::vec3 cameraPos = glm::vec3(0.0f, 0.0f, 3.0f);
+glm::vec3 cameraTarget = glm::vec3(0.0f, 0.0f, 0.0f);
+glm::vec3 cameraDirection = glm::normalize(cameraPos - cameraTarget);
+glm::vec3 up = glm::vec3(0.0f, 1.0f, 0.0f);
+glm::vec3 cameraRight = glm::normalize(glm::cross(up, cameraDirection));
+glm::vec3 cameraUp = glm::cross(cameraDirection, cameraRight);*/
+
+//The short way
+//glm::mat4 view = glm::lookAt(glm::vec3(0.0f, 0.0f, 3.0f), glm::vec3(0.0f, 0.0f, 0.0f), glm::vec3(0.0f, 1.0f, 0.0f));
+//position, target, up
+
+//The FPS way
+glm::vec3 cameraPos = glm::vec3(0.0f, 0.0f, 3.0f);
+glm::vec3 cameraFront = glm::vec3(0.0f, 0.0f, -1.0f);
+glm::vec3 cameraUp = glm::vec3(0.0f, 1.0f, 0.0f);
+glm::mat4 view = glm::lookAt(cameraPos, cameraPos+cameraFront, cameraUp);
+
+
+
+
+////////////////////////Other Matrices/////////////////////////////////////
 glm::mat4 proj = glm::perspective(glm::radians(45.0f), (float)scr_width / (float)scr_height, 0.1f, 100.0f);
 //field of view, aspect ratio, near distance, far distance
 
 glm::mat4 model = glm::mat4(1.0f);
-
-glm::mat4 view = glm::translate(glm::mat4(1.0f), glm::vec3(0.0f, 0.0f, -3.0f));;
-// note that we're translating the scene in the reverse direction of where we want to move
-
 
 //const glm::mat4 proj = glm::ortho(0.0f, 800.0f, 0.0f, 600.0f, 0.1f, 100.0f);
 //left coord, right coord, bottom, top, near, far
@@ -143,6 +174,16 @@ int main() {
 	glfwMakeContextCurrent(window);
 	glfwSetFramebufferSizeCallback(window, framebuffer_size_callback);
 
+	//When focus is given to the window
+	glfwSetWindowFocusCallback(window, window_focus_callback);
+	//Hide and capture mouse input
+	glfwSetInputMode(window, GLFW_CURSOR, GLFW_CURSOR_DISABLED);
+	//Direct mouse input
+	glfwSetCursorPosCallback(window, mouse_callback);
+
+	//Scrolling
+	glfwSetScrollCallback(window, scroll_callback);
+
 	// Initialize GLEW
 	glewExperimental = true; // Needed in core profile
 	if (glewInit() != GLEW_OK) {
@@ -155,7 +196,6 @@ int main() {
 	std::cout << "Maximum nr of vertex attributes supported: " << nrAttributes << std::endl;
 
 	Shader shader = initDrawing();
-	matMan(shader);
 
 	//We do this outside the main loop because the projection matrix does not change
 	unsigned int projLoc = glGetUniformLocation(shader.ID, "project");
@@ -167,9 +207,20 @@ int main() {
 	/////////////////////////////Render Loop///////////////////////////////////////
 	while (!glfwWindowShouldClose(window))
 	{
+		float currentFrame = glfwGetTime();
+		deltaTime = currentFrame - lastFrame;
+		lastFrame = currentFrame;
 		// Draw nothing, see you in tutorial 2 !
 
 		processInput(window);
+
+		//Pan camera
+		/*float radius = 10.0f;
+		float camX = sin(glfwGetTime()) * radius;
+		float camZ = cos(glfwGetTime()) * radius;
+		view = glm::lookAt(glm::vec3(camX, 0.0, camZ), glm::vec3(0.0, 0.0, 0.0), glm::vec3(0.0, 1.0, 0.0));*/
+
+		view = glm::lookAt(cameraPos, cameraPos + cameraFront, cameraUp);
 
 		unsigned int modelLoc = glGetUniformLocation(shader.ID, "model");
 		unsigned int viewLoc = glGetUniformLocation(shader.ID, "view");
@@ -180,7 +231,6 @@ int main() {
 		glClearColor(0.2f, 0.3f, 0.3f, 1.0f);
 		glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);			//There is also a depth buffer bit and stencil buffer bit
 
-
 		for (int i = 0; i < 10; i++) {
 			model = glm::translate(glm::mat4(1.0f), cubePositions[i]);
 			float angle = 20.0f * i;
@@ -188,12 +238,6 @@ int main() {
 			glUniformMatrix4fv(modelLoc, 1, GL_FALSE, glm::value_ptr(model));
 			glDrawArrays(GL_TRIANGLES, 0, 36);
 		}
-
-		//glDrawArrays(GL_TRIANGLES, 0, 36);
-		//What primitive to use, starting index in vertex buffer, number of VERTICES to draw
-
-		//glDrawElements(GL_TRIANGLES, 6, GL_UNSIGNED_INT, 0);
-		//What primitive to use, number of VERTICES to draw, type of elements, starting index in vertex buffer (offset)
 
 		//Swap buffers
 		glfwSwapBuffers(window);
@@ -206,21 +250,62 @@ int main() {
 	return 0;
 }
 
-/////////////////////////////////////////Vector Manipulation////////////////////////////////////////////////////////////////////
-void matMan(const Shader shader) {
-	//glm::vec4 vec(1.0f, 0.0f, 0.0f, 1.0f);
-	/*trans = glm::translate(trans, glm::vec3(1.0f, 1.0f, 0.0f));
-	vec = trans * vec;
-	std::cout << vec.x << vec.y << vec.z << std::endl;*/
+/////////////////////////////////////////Camera Rotation///////////////////////////////////////////////////////////////////
+void window_focus_callback(GLFWwindow* window, int focused)
+{
+	if (focused)
+	{
+		// The window gained input focus
+		//glfwGetCursorPos(window, &lastX, &lastY);
+	}
+	else
+	{
+		//firstMouse = true;
+		// The window lost input focus
+	}
+}
+void mouse_callback(GLFWwindow* window, double xpos, double ypos) {
+	if (firstMouse)
+	{
+		lastX = xpos;
+		lastY = ypos;
+		firstMouse = false;
+	}
+	//Calculate change in mouse position
+	float xoffset = xpos - lastX;
+	float yoffset = lastY - ypos; // reversed since y-coordinates range from bottom to top
+	lastX = xpos;
+	lastY = ypos;
 
-	//model = glm::rotate(model, glm::radians(90.0f), glm::vec3(0.0, 0.0, 1.0));
-	//model = glm::scale(model, glm::vec3(0.5, 0.5, 0.5));
+	//Adjust for camera speed
+	float sensitivity = 0.05f;
+	xoffset *= sensitivity;
+	yoffset *= sensitivity;
 
-	//model = glm::rotate(model, glm::radians(-55.0f), glm::vec3(1.0f, 0.0f, 0.0f));
+	//Constrain the pitch so there is no reversal of direction
+	yaw += xoffset;
+	pitch += yoffset;
+	if (pitch > 89.0f)
+		pitch = 89.0f;
+	if (pitch < -89.0f)
+		pitch = -89.0f;
 
-	//unsigned int transformLoc = glGetUniformLocation(shader.ID, "transform");
-	//glUniformMatrix4fv(transformLoc, 1, GL_FALSE, glm::value_ptr(model));
-	//Uniform location, number of matrices, transpose option, matrix data
+	//Change the front facing portion of the camera based on the pitch and yaw
+	glm::vec3 front;
+	front.x = cos(glm::radians(pitch)) * cos(glm::radians(yaw));
+	front.y = sin(glm::radians(pitch));
+	front.z = cos(glm::radians(pitch)) * sin(glm::radians(yaw));
+	cameraFront = glm::normalize(front);
+}
+
+void scroll_callback(GLFWwindow* window, double xoffset, double yoffset)
+{
+	if (fov >= 1.0f && fov <= 45.0f)
+		fov -= yoffset;
+	if (fov <= 1.0f)
+		fov = 1.0f;
+	if (fov >= 45.0f)
+		fov = 45.0f;
 }
 
 /////////////////////////////////////////Generate and pass our triangle vertex data to the GPU///////////////////////////////////
@@ -351,12 +436,21 @@ void processInput(GLFWwindow *window)
 {
 	if (glfwGetKey(window, GLFW_KEY_ESCAPE) == GLFW_PRESS)
 		glfwSetWindowShouldClose(window, true);
-	else if (glfwGetKey(window, GLFW_KEY_W) == GLFW_PRESS) {
+	if (glfwGetKey(window, GLFW_KEY_T) == GLFW_PRESS) {
 		if (wire)
 			glPolygonMode(GL_FRONT_AND_BACK, GL_FILL);			//Enter default mode
 		else
 			glPolygonMode(GL_FRONT_AND_BACK, GL_LINE);			//Enter wireframe mode
-			
 		wire = !wire;
 	}
+	//Camera movement
+	float cameraSpeed = 2.5f * deltaTime; // adjust accordingly
+	if (glfwGetKey(window, GLFW_KEY_W) == GLFW_PRESS)
+		cameraPos += cameraSpeed * cameraFront;
+	if (glfwGetKey(window, GLFW_KEY_S) == GLFW_PRESS)
+		cameraPos -= cameraSpeed * cameraFront;
+	if (glfwGetKey(window, GLFW_KEY_A) == GLFW_PRESS)
+		cameraPos -= glm::normalize(glm::cross(cameraFront, cameraUp)) * cameraSpeed;
+	if (glfwGetKey(window, GLFW_KEY_D) == GLFW_PRESS)
+		cameraPos += glm::normalize(glm::cross(cameraFront, cameraUp)) * cameraSpeed;
 }

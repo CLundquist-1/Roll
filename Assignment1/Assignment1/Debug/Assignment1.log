@@ -1,4 +1,12 @@
 ﻿  main.cpp
 c:\program files (x86)\windows kits\10\include\10.0.16299.0\shared\minwindef.h(130): warning C4005: 'APIENTRY': macro redefinition
   c:\users\colt\documents\university of calgary\cpsc 587\assignment 1\assignment1\packages\nupengl.core.0.1.0.1\build\native\include\glfw\glfw3.h(92): note: see previous definition of 'APIENTRY'
+c:\users\colt\documents\university of calgary\cpsc 587\assignment 1\assignment1\assignment1\main.cpp(210): warning C4244: 'initializing': conversion from 'double' to 'float', possible loss of data
+c:\users\colt\documents\university of calgary\cpsc 587\assignment 1\assignment1\assignment1\main.cpp(270): warning C4244: '=': conversion from 'double' to 'float', possible loss of data
+c:\users\colt\documents\university of calgary\cpsc 587\assignment 1\assignment1\assignment1\main.cpp(271): warning C4244: '=': conversion from 'double' to 'float', possible loss of data
+c:\users\colt\documents\university of calgary\cpsc 587\assignment 1\assignment1\assignment1\main.cpp(275): warning C4244: 'initializing': conversion from 'double' to 'float', possible loss of data
+c:\users\colt\documents\university of calgary\cpsc 587\assignment 1\assignment1\assignment1\main.cpp(276): warning C4244: 'initializing': conversion from 'double' to 'float', possible loss of data
+c:\users\colt\documents\university of calgary\cpsc 587\assignment 1\assignment1\assignment1\main.cpp(277): warning C4244: '=': conversion from 'double' to 'float', possible loss of data
+c:\users\colt\documents\university of calgary\cpsc 587\assignment 1\assignment1\assignment1\main.cpp(278): warning C4244: '=': conversion from 'double' to 'float', possible loss of data
+c:\users\colt\documents\university of calgary\cpsc 587\assignment 1\assignment1\assignment1\main.cpp(304): warning C4244: '-=': conversion from 'double' to 'float', possible loss of data
   Assignment1.vcxproj -> C:\Users\Colt\Documents\University of Calgary\CPSC 587\Assignment 1\Assignment1\Debug\Assignment1.exe
