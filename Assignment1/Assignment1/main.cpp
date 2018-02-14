@@ -31,9 +31,9 @@ void window_focus_callback(GLFWwindow* window, int focused);
 void mouse_callback(GLFWwindow* window, double xpos, double ypos);
 void scroll_callback(GLFWwindow* window, double xoffset, double yoffset);
 
-float CalcDistance(glm::vec3 position, float time);
+float CalcDistance(glm::vec3 position, int index, float time);
 float Lift(float time);
-float Dec(float time);
+glm::mat4 CalcModel(glm::vec3 position, int index);
 
 void CalcPosition(float distance);
 
@@ -49,53 +49,58 @@ bool wire = false;
 
 bool processed = false;
 
+constexpr float rectH = 0.1;
+constexpr float rectL = 0.2;
+constexpr float rectW = 0.1;
 const float cartVerts[] = {
-	-0.5f, -0.5f, -0.5f,  0.0f, 0.0f,
-	0.5f, -0.5f, -0.5f,  1.0f, 0.0f,
-	0.5f,  0.5f, -0.5f,  1.0f, 1.0f,
-	0.5f,  0.5f, -0.5f,  1.0f, 1.0f,
-	-0.5f,  0.5f, -0.5f,  0.0f, 1.0f,
-	-0.5f, -0.5f, -0.5f,  0.0f, 0.0f,
+	-rectL, -rectH, -rectW,  0.0f, 0.0f,
+	rectL, -rectH, -rectW,  1.0f, 0.0f,
+	rectL,  rectH, -rectW,  1.0f, 1.0f,
+	rectL,  rectH, -rectW,  1.0f, 1.0f,
+	-rectL,  rectH, -rectW,  0.0f, 1.0f,
+	-rectL, -rectH, -rectW,  0.0f, 0.0f,
 
-	-0.5f, -0.5f,  0.5f,  0.0f, 0.0f,
-	0.5f, -0.5f,  0.5f,  1.0f, 0.0f,
-	0.5f,  0.5f,  0.5f,  1.0f, 1.0f,
-	0.5f,  0.5f,  0.5f,  1.0f, 1.0f,
-	-0.5f,  0.5f,  0.5f,  0.0f, 1.0f,
-	-0.5f, -0.5f,  0.5f,  0.0f, 0.0f,
+	-rectL, -rectH,  rectW,  0.0f, 0.0f,
+	rectL, -rectH,  rectW,  1.0f, 0.0f,
+	rectL,  rectH,  rectW,  1.0f, 1.0f,
+	rectL,  rectH,  rectW,  1.0f, 1.0f,
+	-rectL,  rectH,  rectW,  0.0f, 1.0f,
+	-rectL, -rectH,  rectW,  0.0f, 0.0f,
 
-	-0.5f,  0.5f,  0.5f,  1.0f, 0.0f,
-	-0.5f,  0.5f, -0.5f,  1.0f, 1.0f,
-	-0.5f, -0.5f, -0.5f,  0.0f, 1.0f,
-	-0.5f, -0.5f, -0.5f,  0.0f, 1.0f,
-	-0.5f, -0.5f,  0.5f,  0.0f, 0.0f,
-	-0.5f,  0.5f,  0.5f,  1.0f, 0.0f,
+	-rectL,  rectH,  rectW,  1.0f, 0.0f,
+	-rectL,  rectH, -rectW,  1.0f, 1.0f,
+	-rectL, -rectH, -rectW,  0.0f, 1.0f,
+	-rectL, -rectH, -rectW,  0.0f, 1.0f,
+	-rectL, -rectH,  rectW,  0.0f, 0.0f,
+	-rectL,  rectH,  rectW,  1.0f, 0.0f,
 
-	0.5f,  0.5f,  0.5f,  1.0f, 0.0f,
-	0.5f,  0.5f, -0.5f,  1.0f, 1.0f,
-	0.5f, -0.5f, -0.5f,  0.0f, 1.0f,
-	0.5f, -0.5f, -0.5f,  0.0f, 1.0f,
-	0.5f, -0.5f,  0.5f,  0.0f, 0.0f,
-	0.5f,  0.5f,  0.5f,  1.0f, 0.0f,
+	rectL,  rectH,  rectW,  1.0f, 0.0f,
+	rectL,  rectH, -rectW,  1.0f, 1.0f,
+	rectL, -rectH, -rectW,  0.0f, 1.0f,
+	rectL, -rectH, -rectW,  0.0f, 1.0f,
+	rectL, -rectH,  rectW,  0.0f, 0.0f,
+	rectL,  rectH,  rectW,  1.0f, 0.0f,
 
-	-0.5f, -0.5f, -0.5f,  0.0f, 1.0f,
-	0.5f, -0.5f, -0.5f,  1.0f, 1.0f,
-	0.5f, -0.5f,  0.5f,  1.0f, 0.0f,
-	0.5f, -0.5f,  0.5f,  1.0f, 0.0f,
-	-0.5f, -0.5f,  0.5f,  0.0f, 0.0f,
-	-0.5f, -0.5f, -0.5f,  0.0f, 1.0f,
+	-rectL, -rectH, -rectW,  0.0f, 1.0f,
+	rectL, -rectH, -rectW,  1.0f, 1.0f,
+	rectL, -rectH,  rectW,  1.0f, 0.0f,
+	rectL, -rectH,  rectW,  1.0f, 0.0f,
+	-rectL, -rectH,  rectW,  0.0f, 0.0f,
+	-rectL, -rectH, -rectW,  0.0f, 1.0f,
 
-	-0.5f,  0.5f, -0.5f,  0.0f, 1.0f,
-	0.5f,  0.5f, -0.5f,  1.0f, 1.0f,
-	0.5f,  0.5f,  0.5f,  1.0f, 0.0f,
-	0.5f,  0.5f,  0.5f,  1.0f, 0.0f,
-	-0.5f,  0.5f,  0.5f,  0.0f, 0.0f,
-	-0.5f,  0.5f, -0.5f,  0.0f, 1.0f
+	-rectL,  rectH, -rectW,  0.0f, 1.0f,
+	rectL,  rectH, -rectW,  1.0f, 1.0f,
+	rectL,  rectH,  rectW,  1.0f, 0.0f,
+	rectL,  rectH,  rectW,  1.0f, 0.0f,
+	-rectL,  rectH,  rectW,  0.0f, 0.0f,
+	-rectL,  rectH, -rectW,  0.0f, 1.0f
 };
 
 vector<float> track;
 vector<glm::vec3> trackVec;
-vector<float> trackSpeeds;
+vector<glm::vec3> trackNorms;
+vector<glm::vec3> trackTans;
+vector<glm::vec3> trackBNs;
 
 //Defining the shader programs
 const char *vertexShaderSource = "vertexShader.vs";
@@ -219,7 +224,7 @@ int main() {
 		lastFrame = currentFrame;
 		//cout << deltaTime << endl;
 
-		if (currIndex < maxHeightIndex) {
+		/*if (currIndex < maxHeightIndex) {
 			CalcPosition(Lift(deltaTime));
 		}
 		else if(currIndex < decIndex) {
@@ -227,7 +232,9 @@ int main() {
 		}
 		else {
 			CalcPosition(Dec(deltaTime));
-		}
+		}*/
+
+		CalcPosition(CalcDistance(currPosition, currIndex, deltaTime));
 
 		processInput(window);
 
@@ -245,16 +252,18 @@ int main() {
 		glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);			//There is also a depth buffer bit and stencil buffer bit
 		
 		glBindVertexArray(trackVAO);
-		glDrawArrays(GL_POINTS, 0, track.size()/3);
+		glDrawArrays(GL_TRIANGLES, 0, track.size()/3);
 		glPointSize(5);
 		glDrawArrays(GL_POINTS, maxHeightIndex, 1);
 
-		glm::mat4 temp = glm::translate(model, currPosition);
+		//glm::mat4 temp = glm::translate(model, currPosition);
+
+		glm::mat4 temp = CalcModel(currPosition, currIndex);
 
 		//cout << currIndex << endl;
 		glUniformMatrix4fv(modelLoc, 1, GL_FALSE, glm::value_ptr(temp));
 		glBindVertexArray(cartVAO);
-		glDrawArrays(GL_TRIANGLES, 0, (sizeof(cartVerts) / sizeof(float))/3);
+		//glDrawArrays(GL_TRIANGLES, 0, (sizeof(cartVerts) / sizeof(float))/3);
 
 
 		//glPointSize(10);
@@ -483,20 +492,29 @@ void scroll_callback(GLFWwindow* window, double xoffset, double yoffset)
 		fov = 45.0f;
 }
 
-float CalcSpeed(glm::vec3 position) {
+/*float CalcSpeed(glm::vec3 position) {
 	return sqrt(2 * grav*(maxHeight - position.y));
-}
-
-float CalcDistance(glm::vec3 position, float time) {
-	return CalcSpeed(position) * time;
-}
+}*/
 
 float Lift(float time) {
 	return liftSpeed * time;
 }
 
-float Dec(float time) {
-	return CalcSpeed(currPosition*(glm::length((trackVec[trackVec.size()-1] - currPosition))/decLength)) * time;
+float Dec(glm::vec3 position) {
+	return sqrt(2 * grav*(maxHeight - position.y))*(glm::length((trackVec[trackVec.size()-1] - position))/decLength);
+}
+
+float CalcSpeed(glm::vec3 position, float index) {
+	if (index < maxHeightIndex)
+		return liftSpeed;
+	else if (index < decIndex)
+		return sqrt(2 * grav*(maxHeight - currPosition.y));
+	else
+		return Dec(position);
+}
+
+float CalcDistance(glm::vec3 position, int index,  float time) {
+	return CalcSpeed(position, index) * time;
 }
 
 void CalcPosition(float distance) {
@@ -511,6 +529,116 @@ void CalcPosition(float distance) {
 			currDistance -= t * segLength;
 		}
 	}
+}
+
+void CalcTrackNormals() {
+	//float v = CalcSpeed(trackVec[0], 0);
+	glm::vec3 n = trackVec[1] - 2.0f*trackVec[0] + trackVec[trackVec.size()-1];
+	float x = 0.5f * n.length();
+	float c = 0.5f * (glm::length(trackVec[1] - trackVec[trackVec.size() - 1]));
+	float k = 1 / (x*x + c * c);
+	n = glm::normalize(n);
+	n = k * n;
+	n = n - glm::vec3(0.0f, grav, 0.0f);
+	n = glm::normalize(n);
+	trackNorms.push_back(n);
+	for (int i = 1; i < trackVec.size()-1; i++) {
+		//v = CalcSpeed(trackVec[i], i);
+		n = trackVec[i + 1] - 2.0f*trackVec[i] + trackVec[i - 1];
+		x = 0.5f * n.length();
+		c = 0.5f * (glm::length(trackVec[i+1] - trackVec[i - 1]));
+		k = 1 / (x*x + c * c);
+		n = glm::normalize(n);
+		n = k * n;
+		n = n - glm::vec3(0.0f, grav, 0.0f);
+		n = glm::normalize(n);
+		trackNorms.push_back(n);
+	}
+	n = trackVec[0] - 2.0f*trackVec[trackVec.size()-1] + trackVec[trackVec.size() - 2];
+	x = 0.5f * n.length();
+	c = 0.5f * (glm::length(trackVec[0] - trackVec[trackVec.size() - 2]));
+	k = 1 / (x*x + c * c);
+	n = glm::normalize(n);
+	n = k * n;
+	n = n - glm::vec3(0.0f, grav, 0.0f);
+	n = glm::normalize(n);
+	trackNorms.push_back(n);
+}
+
+void CalcTrackTangents() {
+	glm::vec3 t;
+	for (int i = 0; i < trackVec.size() - 1; i++) {
+		t = trackVec[i + 1] - trackVec[i];
+		t = glm::normalize(t);
+		trackTans.push_back(t);
+	}
+	t = trackVec[trackVec.size()-1] - trackVec[0];
+	t = glm::normalize(t);
+	trackTans.push_back(t);
+}
+
+void CalcTrackBiNormals() {
+	glm::vec3 b;
+	for (int i = 0; i < trackVec.size(); i++) {
+		b = glm::cross(trackTans[i], trackNorms[i]);
+		b = glm::normalize(b);
+		trackBNs.push_back(b);
+	}
+}
+
+void CalcCorrectTrackTans() {
+	glm::vec3 t;
+	trackTans.clear();
+	for (int i = 0; i < trackVec.size(); i++) {
+		t = glm::cross(trackNorms[i], trackBNs[i]);
+		t = glm::normalize(t);
+		trackTans.push_back(t);
+	}
+}
+
+glm::mat4 CalcModel(glm::vec3 position, int index) {
+	index = index % trackVec.size();
+	glm::mat4 model = glm::mat4(glm::vec4(trackBNs[index],0.0f), glm::vec4(trackNorms[index],0.0f), glm::vec4(trackTans[index],0.0f), glm::vec4(position,1.0f));
+	return model;
+}
+
+void triangleTrack() {
+	//vector<float> t;
+	float trackWidth = 0.1f;
+	track.clear();
+	glm::vec3 first = trackWidth*trackBNs[0] + trackVec[0];
+	glm::vec3 second = (-trackWidth) * trackBNs[0] + trackVec[0];
+	glm::vec3 third;
+	for (int i = 1; i < trackVec.size(); i++) {
+		track.push_back(first.x);
+		track.push_back(first.y);
+		track.push_back(first.z);
+		track.push_back(second.x);
+		track.push_back(second.y);
+		track.push_back(second.z);
+		if(i % 2 == 0)
+			third = trackWidth * trackBNs[i] + trackVec[i];
+		else
+			third = (-trackWidth) * trackBNs[i] + trackVec[i];
+		track.push_back(third.x);
+		track.push_back(third.y);
+		track.push_back(third.z);
+		first = second;
+		second = third;
+	}
+	/*track.push_back(first.x);
+	track.push_back(first.y);
+	track.push_back(first.z);
+	track.push_back(second.x);
+	track.push_back(second.y);
+	track.push_back(second.z);
+	if (trackBNs.size() % 2 == 0)
+		third = trackWidth * trackBNs[0] + trackVec[0];
+	else
+		third = (-trackWidth) * trackBNs[0] + trackVec[0];
+	track.push_back(third.x);
+	track.push_back(third.y);
+	track.push_back(third.z);*/
 }
 
 /////////////////////////////////////////Generate and pass our triangle vertex data to the GPU///////////////////////////////////
@@ -544,8 +672,13 @@ void initTrack()
 	currPosition = trackVec[0];
 	decLength = (trackVec.size() - decIndex)*segLength;
 
+	CalcTrackNormals();
+	CalcTrackTangents();
+	CalcTrackBiNormals();
+	CalcCorrectTrackTans();
 
-	track = vec3sToFloats(trackVec);
+	triangleTrack();
+	//track = vec3sToFloats(trackVec);
 
 	//The VAO will store enabled vertex attributes, attribute configurations, and vertex buffer objects associated with vertex attributes
 	glGenVertexArrays(1, &trackVAO);
