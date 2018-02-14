@@ -1,19 +1,24 @@
 ﻿  main.cpp
 c:\program files (x86)\windows kits\10\include\10.0.16299.0\shared\minwindef.h(130): warning C4005: 'APIENTRY': macro redefinition
   c:\users\colt\documents\university of calgary\cpsc 587\assignment 1\assignment1\packages\nupengl.core.0.1.0.1\build\native\include\glfw\glfw3.h(92): note: see previous definition of 'APIENTRY'
-c:\users\colt\documents\university of calgary\cpsc 587\assignment 1\assignment1\assignment1\main.cpp(143): warning C4244: 'initializing': conversion from 'double' to 'float', possible loss of data
-c:\users\colt\documents\university of calgary\cpsc 587\assignment 1\assignment1\assignment1\main.cpp(216): warning C4018: '<': signed/unsigned mismatch
-c:\users\colt\documents\university of calgary\cpsc 587\assignment 1\assignment1\assignment1\main.cpp(225): warning C4018: '<': signed/unsigned mismatch
-c:\users\colt\documents\university of calgary\cpsc 587\assignment 1\assignment1\assignment1\main.cpp(233): warning C4018: '<': signed/unsigned mismatch
-c:\users\colt\documents\university of calgary\cpsc 587\assignment 1\assignment1\assignment1\main.cpp(248): warning C4018: '<': signed/unsigned mismatch
-c:\users\colt\documents\university of calgary\cpsc 587\assignment 1\assignment1\assignment1\main.cpp(272): warning C4018: '<': signed/unsigned mismatch
-c:\users\colt\documents\university of calgary\cpsc 587\assignment 1\assignment1\assignment1\main.cpp(292): warning C4018: '<': signed/unsigned mismatch
-c:\users\colt\documents\university of calgary\cpsc 587\assignment 1\assignment1\assignment1\main.cpp(304): warning C4018: '<': signed/unsigned mismatch
-c:\users\colt\documents\university of calgary\cpsc 587\assignment 1\assignment1\assignment1\main.cpp(338): warning C4244: '=': conversion from 'double' to 'float', possible loss of data
-c:\users\colt\documents\university of calgary\cpsc 587\assignment 1\assignment1\assignment1\main.cpp(339): warning C4244: '=': conversion from 'double' to 'float', possible loss of data
-c:\users\colt\documents\university of calgary\cpsc 587\assignment 1\assignment1\assignment1\main.cpp(343): warning C4244: 'initializing': conversion from 'double' to 'float', possible loss of data
-c:\users\colt\documents\university of calgary\cpsc 587\assignment 1\assignment1\assignment1\main.cpp(344): warning C4244: 'initializing': conversion from 'double' to 'float', possible loss of data
-c:\users\colt\documents\university of calgary\cpsc 587\assignment 1\assignment1\assignment1\main.cpp(345): warning C4244: '=': conversion from 'double' to 'float', possible loss of data
-c:\users\colt\documents\university of calgary\cpsc 587\assignment 1\assignment1\assignment1\main.cpp(346): warning C4244: '=': conversion from 'double' to 'float', possible loss of data
-c:\users\colt\documents\university of calgary\cpsc 587\assignment 1\assignment1\assignment1\main.cpp(372): warning C4244: '-=': conversion from 'double' to 'float', possible loss of data
+c:\users\colt\documents\university of calgary\cpsc 587\assignment 1\assignment1\assignment1\main.cpp(121): warning C4305: 'initializing': truncation from 'double' to 'const float'
+c:\users\colt\documents\university of calgary\cpsc 587\assignment 1\assignment1\assignment1\main.cpp(131): warning C4244: 'initializing': conversion from 'double' to 'const int', possible loss of data
+c:\users\colt\documents\university of calgary\cpsc 587\assignment 1\assignment1\assignment1\main.cpp(217): warning C4244: 'initializing': conversion from 'double' to 'float', possible loss of data
+c:\users\colt\documents\university of calgary\cpsc 587\assignment 1\assignment1\assignment1\main.cpp(311): warning C4018: '<': signed/unsigned mismatch
+c:\users\colt\documents\university of calgary\cpsc 587\assignment 1\assignment1\assignment1\main.cpp(320): warning C4018: '<': signed/unsigned mismatch
+c:\users\colt\documents\university of calgary\cpsc 587\assignment 1\assignment1\assignment1\main.cpp(328): warning C4018: '<': signed/unsigned mismatch
+c:\users\colt\documents\university of calgary\cpsc 587\assignment 1\assignment1\assignment1\main.cpp(343): warning C4018: '<': signed/unsigned mismatch
+c:\users\colt\documents\university of calgary\cpsc 587\assignment 1\assignment1\assignment1\main.cpp(367): warning C4018: '<': signed/unsigned mismatch
+c:\users\colt\documents\university of calgary\cpsc 587\assignment 1\assignment1\assignment1\main.cpp(387): warning C4018: '<': signed/unsigned mismatch
+c:\users\colt\documents\university of calgary\cpsc 587\assignment 1\assignment1\assignment1\main.cpp(397): warning C4018: '<': signed/unsigned mismatch
+c:\users\colt\documents\university of calgary\cpsc 587\assignment 1\assignment1\assignment1\main.cpp(411): warning C4018: '<': signed/unsigned mismatch
+c:\users\colt\documents\university of calgary\cpsc 587\assignment 1\assignment1\assignment1\main.cpp(445): warning C4244: '=': conversion from 'double' to 'float', possible loss of data
+c:\users\colt\documents\university of calgary\cpsc 587\assignment 1\assignment1\assignment1\main.cpp(446): warning C4244: '=': conversion from 'double' to 'float', possible loss of data
+c:\users\colt\documents\university of calgary\cpsc 587\assignment 1\assignment1\assignment1\main.cpp(450): warning C4244: 'initializing': conversion from 'double' to 'float', possible loss of data
+c:\users\colt\documents\university of calgary\cpsc 587\assignment 1\assignment1\assignment1\main.cpp(451): warning C4244: 'initializing': conversion from 'double' to 'float', possible loss of data
+c:\users\colt\documents\university of calgary\cpsc 587\assignment 1\assignment1\assignment1\main.cpp(452): warning C4244: '=': conversion from 'double' to 'float', possible loss of data
+c:\users\colt\documents\university of calgary\cpsc 587\assignment 1\assignment1\assignment1\main.cpp(453): warning C4244: '=': conversion from 'double' to 'float', possible loss of data
+c:\users\colt\documents\university of calgary\cpsc 587\assignment 1\assignment1\assignment1\main.cpp(479): warning C4244: '-=': conversion from 'double' to 'float', possible loss of data
+c:\users\colt\documents\university of calgary\cpsc 587\assignment 1\assignment1\assignment1\main.cpp(505): warning C4244: 'initializing': conversion from 'float' to 'int', possible loss of data
+c:\users\colt\documents\university of calgary\cpsc 587\assignment 1\assignment1\assignment1\main.cpp(509): warning C4018: '<': signed/unsigned mismatch
   Assignment1.vcxproj -> C:\Users\Colt\Documents\University of Calgary\CPSC 587\Assignment 1\Assignment1\Debug\Assignment1.exe

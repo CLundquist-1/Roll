@@ -13,6 +13,7 @@
 #include<fstream>
 #include<string>
 #include<vector>
+#include<math.h>
 
 using std::cout;
 using std::endl;
@@ -30,18 +31,71 @@ void window_focus_callback(GLFWwindow* window, int focused);
 void mouse_callback(GLFWwindow* window, double xpos, double ypos);
 void scroll_callback(GLFWwindow* window, double xoffset, double yoffset);
 
+float CalcDistance(glm::vec3 position, float time);
+float Lift(float time);
+float Dec(float time);
+
+void CalcPosition(float distance);
+
 vector<float> getTrack(string filename, char delim = ',');
 
 // settings
 constexpr unsigned int scr_width = 800;
 constexpr unsigned int scr_height = 600;
+unsigned int trackVAO;
+unsigned int cartVAO;
 
 bool wire = false;
 
 bool processed = false;
 
+const float cartVerts[] = {
+	-0.5f, -0.5f, -0.5f,  0.0f, 0.0f,
+	0.5f, -0.5f, -0.5f,  1.0f, 0.0f,
+	0.5f,  0.5f, -0.5f,  1.0f, 1.0f,
+	0.5f,  0.5f, -0.5f,  1.0f, 1.0f,
+	-0.5f,  0.5f, -0.5f,  0.0f, 1.0f,
+	-0.5f, -0.5f, -0.5f,  0.0f, 0.0f,
+
+	-0.5f, -0.5f,  0.5f,  0.0f, 0.0f,
+	0.5f, -0.5f,  0.5f,  1.0f, 0.0f,
+	0.5f,  0.5f,  0.5f,  1.0f, 1.0f,
+	0.5f,  0.5f,  0.5f,  1.0f, 1.0f,
+	-0.5f,  0.5f,  0.5f,  0.0f, 1.0f,
+	-0.5f, -0.5f,  0.5f,  0.0f, 0.0f,
+
+	-0.5f,  0.5f,  0.5f,  1.0f, 0.0f,
+	-0.5f,  0.5f, -0.5f,  1.0f, 1.0f,
+	-0.5f, -0.5f, -0.5f,  0.0f, 1.0f,
+	-0.5f, -0.5f, -0.5f,  0.0f, 1.0f,
+	-0.5f, -0.5f,  0.5f,  0.0f, 0.0f,
+	-0.5f,  0.5f,  0.5f,  1.0f, 0.0f,
+
+	0.5f,  0.5f,  0.5f,  1.0f, 0.0f,
+	0.5f,  0.5f, -0.5f,  1.0f, 1.0f,
+	0.5f, -0.5f, -0.5f,  0.0f, 1.0f,
+	0.5f, -0.5f, -0.5f,  0.0f, 1.0f,
+	0.5f, -0.5f,  0.5f,  0.0f, 0.0f,
+	0.5f,  0.5f,  0.5f,  1.0f, 0.0f,
+
+	-0.5f, -0.5f, -0.5f,  0.0f, 1.0f,
+	0.5f, -0.5f, -0.5f,  1.0f, 1.0f,
+	0.5f, -0.5f,  0.5f,  1.0f, 0.0f,
+	0.5f, -0.5f,  0.5f,  1.0f, 0.0f,
+	-0.5f, -0.5f,  0.5f,  0.0f, 0.0f,
+	-0.5f, -0.5f, -0.5f,  0.0f, 1.0f,
+
+	-0.5f,  0.5f, -0.5f,  0.0f, 1.0f,
+	0.5f,  0.5f, -0.5f,  1.0f, 1.0f,
+	0.5f,  0.5f,  0.5f,  1.0f, 0.0f,
+	0.5f,  0.5f,  0.5f,  1.0f, 0.0f,
+	-0.5f,  0.5f,  0.5f,  0.0f, 0.0f,
+	-0.5f,  0.5f, -0.5f,  0.0f, 1.0f
+};
+
 vector<float> track;
 vector<glm::vec3> trackVec;
+vector<float> trackSpeeds;
 
 //Defining the shader programs
 const char *vertexShaderSource = "vertexShader.vs";
@@ -63,6 +117,26 @@ constexpr int nDivides = 10;
 constexpr int nChases = 2;
 
 constexpr int numSeg = 1000;
+
+constexpr float grav = 9.81;
+
+constexpr float liftSpeed = 2.0f;
+
+float segLength = 0.0f;
+
+int maxHeightIndex;
+
+float maxHeight;
+
+constexpr int decIndex = numSeg * 0.9;
+
+float decLength;
+
+int currIndex;
+
+glm::vec3 currPosition;
+
+float currDistance;
 
 ///////////////////////////Camera Stuff///////////////////////////////////
 
@@ -135,15 +209,25 @@ int main() {
 	//Lets take depth into account for drawing
 	glEnable(GL_DEPTH_TEST);
 
-
 	glPointSize(1);
 	/////////////////////////////Render Loop///////////////////////////////////////
 	while (!glfwWindowShouldClose(window))
 	{
+		glPointSize(1);
 		float currentFrame = glfwGetTime();
 		deltaTime = currentFrame - lastFrame;
 		lastFrame = currentFrame;
-		// Draw nothing, see you in tutorial 2 !
+		//cout << deltaTime << endl;
+
+		if (currIndex < maxHeightIndex) {
+			CalcPosition(Lift(deltaTime));
+		}
+		else if(currIndex < decIndex) {
+			CalcPosition(CalcDistance(currPosition, deltaTime));
+		}
+		else {
+			CalcPosition(Dec(deltaTime));
+		}
 
 		processInput(window);
 
@@ -159,7 +243,18 @@ int main() {
 
 		glClearColor(0.2f, 0.3f, 0.3f, 1.0f);
 		glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);			//There is also a depth buffer bit and stencil buffer bit
+		
+		glBindVertexArray(trackVAO);
 		glDrawArrays(GL_POINTS, 0, track.size()/3);
+		glPointSize(5);
+		glDrawArrays(GL_POINTS, maxHeightIndex, 1);
+
+		glm::mat4 temp = glm::translate(model, currPosition);
+
+		//cout << currIndex << endl;
+		glUniformMatrix4fv(modelLoc, 1, GL_FALSE, glm::value_ptr(temp));
+		glBindVertexArray(cartVAO);
+		glDrawArrays(GL_TRIANGLES, 0, (sizeof(cartVerts) / sizeof(float))/3);
 
 
 		//glPointSize(10);
@@ -296,6 +391,18 @@ float CalcDistance(const vector<glm::vec3>& track) {
 	return distance;
 }
 
+int FindMaxHeightIndex(const vector<glm::vec3>& track) {
+	maxHeight = -1.0f;
+	maxHeightIndex = -1;
+	for (int i = 0; i < track.size(); i++) {
+		if (track[i].y > maxHeight) {
+			maxHeight = track[i].y;
+			maxHeightIndex = i;
+		}
+	}
+	return maxHeightIndex;
+}
+
 vector<glm::vec3> ParameterizeCurve(const vector<glm::vec3>& track, const float seglength) {
 	vector<glm::vec3> paramTrack;
 	float distance = 0.0f;
@@ -376,6 +483,36 @@ void scroll_callback(GLFWwindow* window, double xoffset, double yoffset)
 		fov = 45.0f;
 }
 
+float CalcSpeed(glm::vec3 position) {
+	return sqrt(2 * grav*(maxHeight - position.y));
+}
+
+float CalcDistance(glm::vec3 position, float time) {
+	return CalcSpeed(position) * time;
+}
+
+float Lift(float time) {
+	return liftSpeed * time;
+}
+
+float Dec(float time) {
+	return CalcSpeed(currPosition*(glm::length((trackVec[trackVec.size()-1] - currPosition))/decLength)) * time;
+}
+
+void CalcPosition(float distance) {
+	currDistance += distance;
+	float temp = currDistance / segLength;
+	int t = temp;
+	if (t != 0) {
+		float ratio = (currDistance - t * segLength) / segLength;
+		currIndex += t;
+		if (currIndex < trackVec.size() - 1) {
+			currPosition = trackVec[currIndex] * ratio + trackVec[currIndex + 1] * (1 - ratio);
+			currDistance -= t * segLength;
+		}
+	}
+}
+
 /////////////////////////////////////////Generate and pass our triangle vertex data to the GPU///////////////////////////////////
 void initTrack()
 {
@@ -398,14 +535,21 @@ void initTrack()
 	trackVec = smoothCurve(track, nDivides, nChases);
 	float curveLength = CalcDistance(trackVec);
 
-	trackVec = ParameterizeCurve(trackVec, curveLength / numSeg);
+	segLength = curveLength / numSeg;
+	trackVec = ParameterizeCurve(trackVec, segLength);
+
+	
+	//End variables
+	maxHeightIndex = FindMaxHeightIndex(trackVec);
+	currPosition = trackVec[0];
+	decLength = (trackVec.size() - decIndex)*segLength;
+
 
 	track = vec3sToFloats(trackVec);
 
 	//The VAO will store enabled vertex attributes, attribute configurations, and vertex buffer objects associated with vertex attributes
-	unsigned int VAO;
-	glGenVertexArrays(1, &VAO);
-	glBindVertexArray(VAO);
+	glGenVertexArrays(1, &trackVAO);
+	glBindVertexArray(trackVAO);
 
 	//Create vertex buffer object that will contain all the triangles vertex data. It makes it easier to pass the GPU large portions of data at a time
 	unsigned int VBO;
@@ -425,6 +569,31 @@ void initTrack()
 	//Define the data we just pushed to GPU memory
 
 	glVertexAttribPointer(0, 3, GL_FLOAT, GL_FALSE, 3 * sizeof(float), (void*)0);
+	//What layout location we are setting, size of the attribute, type of data, if we want numbers not from 0 to 1 to be normalized (mapped ot them), stride, offset to beginning
+	glEnableVertexAttribArray(0);	//This turns layout location 0
+
+	//////////////////////////////////////////////////Cart Stuff/////////////////////////////////////////////////////////////////
+	glGenVertexArrays(1, &cartVAO);
+	glBindVertexArray(cartVAO);
+
+	//Create vertex buffer object that will contain all the triangles vertex data. It makes it easier to pass the GPU large portions of data at a time
+	VBO;
+
+	//Generate the buffer in GPU memory and pass the id of the object back into the vertex buffer object
+	glGenBuffers(1, &VBO); //We pass it the address so it can manipulate the VBO contents directly
+
+						   //Now we associate the id to an Array Buffer. Remember we can bind to several different buffers at once as long as they are a different buffer type
+	glBindBuffer(GL_ARRAY_BUFFER, VBO); //From this point on any buffer calls we make will be to the currently bound buffer VBO
+
+										//Now lets push our triangles vertex data to the buffers memory on the GPU
+	glBufferData(GL_ARRAY_BUFFER, sizeof(cartVerts), &cartVerts[0], GL_STATIC_DRAW);
+
+
+	//The data is now in GPU memory
+
+	//Define the data we just pushed to GPU memory
+
+	glVertexAttribPointer(0, 3, GL_FLOAT, GL_FALSE, 5 * sizeof(float), (void*)0);
 	//What layout location we are setting, size of the attribute, type of data, if we want numbers not from 0 to 1 to be normalized (mapped ot them), stride, offset to beginning
 	glEnableVertexAttribArray(0);	//This turns layout location 0
 }
