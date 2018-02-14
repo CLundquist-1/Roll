@@ -135,8 +135,8 @@ int main() {
 	//Lets take depth into account for drawing
 	glEnable(GL_DEPTH_TEST);
 
-	glPointSize(1);
 
+	glPointSize(1);
 	/////////////////////////////Render Loop///////////////////////////////////////
 	while (!glfwWindowShouldClose(window))
 	{
@@ -161,6 +161,9 @@ int main() {
 		glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);			//There is also a depth buffer bit and stencil buffer bit
 		glDrawArrays(GL_POINTS, 0, track.size()/3);
 
+
+		//glPointSize(10);
+		//glDrawArrays(GL_POINTS, 0, 1);
 		//Swap buffers
 		glfwSwapBuffers(window);
 
@@ -297,13 +300,20 @@ vector<glm::vec3> ParameterizeCurve(const vector<glm::vec3>& track, const float 
 	vector<glm::vec3> paramTrack;
 	float distance = 0.0f;
 	paramTrack.push_back(track[0]);
+	glm::vec3 diff;
 	for (int i = 0; i < track.size() - 1; i++) {
-		glm::vec3 diff = track[i + 1] - track[i];
+		diff = track[i + 1] - track[i];
 		distance += glm::length(diff);
 		if (seglength <= (distance)) {
 			distance -= seglength;
 			paramTrack.push_back(track[i + 1]);
 		}
+	}
+	diff = paramTrack[0] - paramTrack[paramTrack.size() - 1];
+	distance += glm::length(diff);
+	if (seglength <= distance) {
+		float percent = seglength / distance;
+		paramTrack.push_back(paramTrack[0]*percent + paramTrack[paramTrack.size() - 1]*(1-percent));
 	}
 	return paramTrack;
 }
