@@ -18,6 +18,7 @@ using std::cout;
 using std::endl;
 using std::string;
 using std::ifstream;
+using std::ofstream;
 using std::vector;
 using std::getchar;
 
@@ -37,6 +38,8 @@ const unsigned int scr_height = 600;
 
 bool wire = false;
 
+bool processed = false;
+
 vector<float> track;
 
 //Defining the shader programs
@@ -52,10 +55,16 @@ float yaw = -90.0f, pitch = 0.0f, fov = 45.0f; //a yaw of 0 results in x=1 (a di
 
 bool firstMouse = true;
 
+string inputFile = "track.txt";
+string outputFile = "pTrack.txt";
+
+int nDivides = 10;
+int nChases = 2;
+
 ///////////////////////////Camera Stuff///////////////////////////////////
 
 //The FPS way
-glm::vec3 cameraPos = glm::vec3(0.0f, 0.0f, 80.0f);
+glm::vec3 cameraPos = glm::vec3(0.0f, 0.0f, 25.0f);
 glm::vec3 cameraFront = glm::vec3(0.0f, 0.0f, -1.0f);
 glm::vec3 cameraUp = glm::vec3(0.0f, 1.0f, 0.0f);
 glm::mat4 view = glm::lookAt(cameraPos, cameraPos + cameraFront, cameraUp);
@@ -146,7 +155,7 @@ int main() {
 
 		glClearColor(0.2f, 0.3f, 0.3f, 1.0f);
 		glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);			//There is also a depth buffer bit and stencil buffer bit
-		glDrawArrays(GL_POINTS, 0, 1);
+		glDrawArrays(GL_POINTS, 0, track.size()/3);
 
 		//Swap buffers
 		glfwSwapBuffers(window);
@@ -165,16 +174,110 @@ vector<float> getTrack(string filename, char delim) {
 	ifstream myfile(filename);
 	if (myfile.is_open())
 	{
-		while (getline(myfile, line, delim))
+		getline(myfile, line);
+		if (line[0] == 'P')
+			processed = true;
+		else {
+			std::stringstream ss(line);
+			std::string token;
+			while (std::getline(ss, token, delim)) {
+				trackVectors.push_back(std::strtof(token.c_str(), 0));
+			}
+		}
+		while (getline(myfile, line))
 		{
-			cout << line << '\n';
-			trackVectors.push_back(std::strtof(line.c_str(), 0));
+			if (line[0] == '/')
+				continue;
+			std::stringstream ss(line);
+			std::string token;
+			while (std::getline(ss, token, delim)) {
+				trackVectors.push_back(std::strtof(token.c_str(), 0));
+			}
+			//cout << line << '\n';
 		}
 		myfile.close();
 	}
 
 	else cout << "Unable to open file";
 	return trackVectors;
+}
+
+bool saveTrack(vector<float> track) {
+	ofstream myfile;
+	myfile.open(outputFile);
+	myfile << "Processed\n";
+	for (int i = 0; i < track.size()-2; i+=3) {
+		myfile << track[i] << "," << track[i + 1] << "," << track[i + 2] << "\n";
+	}
+	myfile.close();
+	return true;
+}
+
+vector<glm::vec3> floatsToVec3s(vector<float> curve) {
+	vector<glm::vec3> vecs;
+	for (int i = 0; i < curve.size() - 2; i += 3) {
+		vecs.push_back(glm::vec3(curve[i], curve[i + 1], curve[i + 2]));
+	}
+	return vecs;
+}
+
+vector<float> vec3sToFloats(vector<glm::vec3> curve) {
+	vector<float> vecs;
+	for (int i = 0; i < curve.size()-1; i ++) {
+		glm::vec3 v = curve[i];
+		vecs.push_back(v.x);
+		vecs.push_back(v.y);
+		vecs.push_back(v.z);
+	}
+	return vecs;
+}
+
+vector<float> smoothCurve(vector<float> c, int numDivides = 1, int numChases = 1) {
+	vector<glm::vec3> newCurve;
+	vector<glm::vec3> curve = floatsToVec3s(c);
+	for (int i = 0; i < numDivides; i++) {
+		newCurve.clear();
+		glm::vec3 veryFirst = curve[0];
+		for (int j = 0; j < curve.size() - 1; j++) {
+			glm::vec3 first = curve[j];
+			glm::vec3 second = curve[j+1];
+			//float mid = (second - first) / 2 + first;
+			glm::vec3 mid = (second + first) * 0.5f;
+			first = (first + mid) * 0.5f;
+			mid = (mid + second) * 0.5f;
+			newCurve.push_back(first);
+			newCurve.push_back(mid);
+			//newCurve.push_back(curve[j + 1]);
+		}
+		//Account for the last vertex and a closed circuit
+		glm::vec3 last = curve[curve.size() - 1];
+		glm::vec3 mid = (last + veryFirst) * 0.5f;
+		last = (last + mid) * 0.5f;
+		mid = (mid + veryFirst) * 0.5f;
+		newCurve.push_back(last);
+		newCurve.push_back(mid);
+
+		//Clear the curve we pulled everything from
+		curve.clear();
+
+		for (int k = 0; k < numChases-1; k++) {
+			glm::vec3 first = newCurve[0];
+			for (int j = 0; j < newCurve.size() - 1; j ++) {
+				glm::vec3 first = newCurve[j];
+				glm::vec3 second = newCurve[j + 1];
+				first = (first + second) * 0.5f;
+				curve.push_back(first);
+			}
+			glm::vec3 last = newCurve[newCurve.size() - 1];
+			last = (last + first) * 0.5f;
+			curve.push_back(last);
+			newCurve = curve;
+			curve.clear();
+		}
+		if (i < numDivides)
+			curve = newCurve;
+	}
+	return vec3sToFloats(newCurve);
 }
 
 /////////////////////////////////////////Camera Rotation///////////////////////////////////////////////////////////////////
@@ -238,7 +341,24 @@ void scroll_callback(GLFWwindow* window, double xoffset, double yoffset)
 /////////////////////////////////////////Generate and pass our triangle vertex data to the GPU///////////////////////////////////
 void initTrack()
 {
-	track = getTrack("track.txt");
+	/*ifstream myfile(outputFile);
+	if (myfile.is_open())
+	{
+		track = getTrack(outputFile);
+	}
+	else
+	{
+		track = getTrack(inputFile);
+	}
+	//track = getTrack(inputFile);
+	if (!processed) {
+		track = smoothCurve(track, 15, 2);
+		saveTrack(track);
+	}*/
+
+	track = getTrack(inputFile);
+	track = smoothCurve(track, nDivides, nChases);
+
 	//The VAO will store enabled vertex attributes, attribute configurations, and vertex buffer objects associated with vertex attributes
 	unsigned int VAO;
 	glGenVertexArrays(1, &VAO);
@@ -296,7 +416,7 @@ void processInput(GLFWwindow *window)
 		wire = !wire;
 	}
 	//Camera movement
-	float cameraSpeed = 2.5f * deltaTime; // adjust accordingly
+	float cameraSpeed = 4.0f * deltaTime; // adjust accordingly
 	if (glfwGetKey(window, GLFW_KEY_W) == GLFW_PRESS)
 		cameraPos += cameraSpeed * cameraFront;
 	if (glfwGetKey(window, GLFW_KEY_S) == GLFW_PRESS)
@@ -305,4 +425,6 @@ void processInput(GLFWwindow *window)
 		cameraPos -= glm::normalize(glm::cross(cameraFront, cameraUp)) * cameraSpeed;
 	if (glfwGetKey(window, GLFW_KEY_D) == GLFW_PRESS)
 		cameraPos += glm::normalize(glm::cross(cameraFront, cameraUp)) * cameraSpeed;
+	if (glfwGetKey(window, GLFW_KEY_SPACE) == GLFW_PRESS)
+		cameraPos += glm::vec3(0.0f,1.0f,0.0f) * cameraSpeed;
 }
