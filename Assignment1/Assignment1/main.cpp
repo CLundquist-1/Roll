@@ -33,14 +33,15 @@ void scroll_callback(GLFWwindow* window, double xoffset, double yoffset);
 vector<float> getTrack(string filename, char delim = ',');
 
 // settings
-const unsigned int scr_width = 800;
-const unsigned int scr_height = 600;
+constexpr unsigned int scr_width = 800;
+constexpr unsigned int scr_height = 600;
 
 bool wire = false;
 
 bool processed = false;
 
 vector<float> track;
+vector<glm::vec3> trackVec;
 
 //Defining the shader programs
 const char *vertexShaderSource = "vertexShader.vs";
@@ -55,11 +56,13 @@ float yaw = -90.0f, pitch = 0.0f, fov = 45.0f; //a yaw of 0 results in x=1 (a di
 
 bool firstMouse = true;
 
-string inputFile = "track.txt";
-string outputFile = "pTrack.txt";
+const string inputFile = "track.txt";
+const string outputFile = "pTrack.txt";
 
-int nDivides = 10;
-int nChases = 2;
+constexpr int nDivides = 10;
+constexpr int nChases = 2;
+
+constexpr int numSeg = 1000;
 
 ///////////////////////////Camera Stuff///////////////////////////////////
 
@@ -74,6 +77,7 @@ glm::mat4 view = glm::lookAt(cameraPos, cameraPos + cameraFront, cameraUp);
 
 ////////////////////////Other Matrices/////////////////////////////////////
 glm::mat4 proj = glm::perspective(glm::radians(45.0f), (float)scr_width / (float)scr_height, 0.1f, 100.0f);
+//glm::mat4 proj = glm::ortho(0.0f, 800.0f, 0.0f, 600.0f, 0.1f, 100.0f);
 //field of view, aspect ratio, near distance, far distance
 
 glm::mat4 model = glm::mat4(1.0f);
@@ -131,7 +135,7 @@ int main() {
 	//Lets take depth into account for drawing
 	glEnable(GL_DEPTH_TEST);
 
-	glPointSize(10);
+	glPointSize(1);
 
 	/////////////////////////////Render Loop///////////////////////////////////////
 	while (!glfwWindowShouldClose(window))
@@ -232,7 +236,7 @@ vector<float> vec3sToFloats(vector<glm::vec3> curve) {
 	return vecs;
 }
 
-vector<float> smoothCurve(vector<float> c, int numDivides = 1, int numChases = 1) {
+vector<glm::vec3> smoothCurve(vector<float> c, int numDivides = 1, int numChases = 1) {
 	vector<glm::vec3> newCurve;
 	vector<glm::vec3> curve = floatsToVec3s(c);
 	for (int i = 0; i < numDivides; i++) {
@@ -277,7 +281,31 @@ vector<float> smoothCurve(vector<float> c, int numDivides = 1, int numChases = 1
 		if (i < numDivides)
 			curve = newCurve;
 	}
-	return vec3sToFloats(newCurve);
+	return newCurve;
+}
+
+float CalcDistance(const vector<glm::vec3>& track) {
+	float distance = 0.0f;
+	for (int i = 0; i < track.size() - 1; i++) {
+		glm::vec3 diff = track[i + 1] - track[i];
+		distance += glm::length(diff);
+	}
+	return distance;
+}
+
+vector<glm::vec3> ParameterizeCurve(const vector<glm::vec3>& track, const float seglength) {
+	vector<glm::vec3> paramTrack;
+	float distance = 0.0f;
+	paramTrack.push_back(track[0]);
+	for (int i = 0; i < track.size() - 1; i++) {
+		glm::vec3 diff = track[i + 1] - track[i];
+		distance += glm::length(diff);
+		if (seglength <= (distance)) {
+			distance -= seglength;
+			paramTrack.push_back(track[i + 1]);
+		}
+	}
+	return paramTrack;
 }
 
 /////////////////////////////////////////Camera Rotation///////////////////////////////////////////////////////////////////
@@ -357,7 +385,12 @@ void initTrack()
 	}*/
 
 	track = getTrack(inputFile);
-	track = smoothCurve(track, nDivides, nChases);
+	trackVec = smoothCurve(track, nDivides, nChases);
+	float curveLength = CalcDistance(trackVec);
+
+	trackVec = ParameterizeCurve(trackVec, curveLength / numSeg);
+
+	track = vec3sToFloats(trackVec);
 
 	//The VAO will store enabled vertex attributes, attribute configurations, and vertex buffer objects associated with vertex attributes
 	unsigned int VAO;
