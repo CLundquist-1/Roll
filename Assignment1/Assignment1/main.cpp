@@ -31,11 +31,10 @@ void window_focus_callback(GLFWwindow* window, int focused);
 void mouse_callback(GLFWwindow* window, double xpos, double ypos);
 void scroll_callback(GLFWwindow* window, double xoffset, double yoffset);
 
-float CalcDistance(glm::vec3 position, int index, float time);
-float Lift(float time);
-glm::mat4 CalcModel(glm::vec3 position, int index);
+glm::mat4 CalcModel(glm::vec3);
 
-void CalcPosition(float distance);
+float Speed(float);
+glm::vec3 Position(float s);
 
 vector<float> getTrack(string filename, char delim = ',');
 
@@ -106,7 +105,7 @@ vector<glm::vec3> trackBNs;
 const char *vertexShaderSource = "vertexShader.vs";
 const char *fragmentShaderSource = "fragmentShader.fs";
 
-float deltaTime = 0.0f;	// Time between current frame and last frame
+float deltaTime = 0.01f;	// Time between current frame and last frame
 float lastFrame = 0.0f; // Time of last frame
 
 float lastX = scr_width * 0.5, lastY = scr_height * 0.5;
@@ -123,7 +122,7 @@ constexpr int nChases = 2;
 
 constexpr int numSeg = 1000;
 
-constexpr float grav = 9.81;
+constexpr float grav = -9.80665;
 
 constexpr float liftSpeed = 2.0f;
 
@@ -137,11 +136,7 @@ constexpr int decIndex = numSeg * 0.9;
 
 float decLength;
 
-int currIndex;
-
-glm::vec3 currPosition;
-
-float currDistance;
+float currDistance = 0.0f;
 
 ///////////////////////////Camera Stuff///////////////////////////////////
 
@@ -220,21 +215,9 @@ int main() {
 	{
 		glPointSize(1);
 		float currentFrame = glfwGetTime();
-		deltaTime = currentFrame - lastFrame;
-		lastFrame = currentFrame;
-		//cout << deltaTime << endl;
-
-		/*if (currIndex < maxHeightIndex) {
-			CalcPosition(Lift(deltaTime));
-		}
-		else if(currIndex < decIndex) {
-			CalcPosition(CalcDistance(currPosition, deltaTime));
-		}
-		else {
-			CalcPosition(Dec(deltaTime));
-		}*/
-
-		CalcPosition(CalcDistance(currPosition, currIndex, deltaTime));
+		//deltaTime = currentFrame - lastFrame;
+		//lastFrame = currentFrame;
+		//deltaTime = 0.01f;
 
 		processInput(window);
 
@@ -252,18 +235,20 @@ int main() {
 		glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);			//There is also a depth buffer bit and stencil buffer bit
 		
 		glBindVertexArray(trackVAO);
-		glDrawArrays(GL_TRIANGLES, 0, track.size()/3);
-		glPointSize(5);
-		glDrawArrays(GL_POINTS, maxHeightIndex, 1);
+		glDrawArrays(GL_POINTS, 0, track.size()/3);
+		//glPointSize(5);
+		//glDrawArrays(GL_POINTS, maxHeightIndex, 1);
 
 		//glm::mat4 temp = glm::translate(model, currPosition);
 
-		glm::mat4 temp = CalcModel(currPosition, currIndex);
+		currDistance += Speed(currDistance)*deltaTime;
+
+		glm::mat4 temp = CalcModel(Position(currDistance));
 
 		//cout << currIndex << endl;
 		glUniformMatrix4fv(modelLoc, 1, GL_FALSE, glm::value_ptr(temp));
 		glBindVertexArray(cartVAO);
-		//glDrawArrays(GL_TRIANGLES, 0, (sizeof(cartVerts) / sizeof(float))/3);
+		glDrawArrays(GL_TRIANGLES, 0, (sizeof(cartVerts) / sizeof(float))/3);
 
 
 		//glPointSize(10);
@@ -496,24 +481,39 @@ void scroll_callback(GLFWwindow* window, double xoffset, double yoffset)
 	return sqrt(2 * grav*(maxHeight - position.y));
 }*/
 
-float Lift(float time) {
-	return liftSpeed * time;
+glm::vec3 Position(float s) {
+	int index = (s / segLength);
+	if (index > numSeg)
+		index -= numSeg;
+	return trackVec[index];
 }
 
-float Dec(glm::vec3 position) {
-	return sqrt(2 * grav*(maxHeight - position.y))*(glm::length((trackVec[trackVec.size()-1] - position))/decLength);
+float Dec(float s) {
+	glm::vec3 position = Position(s);
+	return sqrt(2 * (-grav)*(maxHeight - position.y))*(glm::length((trackVec[trackVec.size()-1] - position))/decLength);
 }
 
-float CalcSpeed(glm::vec3 position, float index) {
-	if (index < maxHeightIndex)
+float Speed(float s) {
+	int index = (s / segLength);
+	if (index < maxHeightIndex+5)
 		return liftSpeed;
-	else if (index < decIndex)
-		return sqrt(2 * grav*(maxHeight - currPosition.y));
+	else if (index < decIndex) {
+		float speed = sqrt(2 * (-grav)*(maxHeight - Position(s).y));
+		return speed;
+	}
 	else
-		return Dec(position);
+		return Dec(s);
 }
 
-float CalcDistance(glm::vec3 position, int index,  float time) {
+glm::vec3 Velocity(float s) {
+	return (Position(s + Speed(s)*deltaTime) - Position(s)) / deltaTime;
+}
+
+glm::vec3 Acceleration(float s) {
+	return (Velocity(s + Speed(s)*deltaTime) - Velocity(s)) / deltaTime;
+}
+
+/*float CalcDistance(glm::vec3 position, int index,  float time) {
 	return CalcSpeed(position, index) * time;
 }
 
@@ -529,76 +529,13 @@ void CalcPosition(float distance) {
 			currDistance -= t * segLength;
 		}
 	}
-}
+}*/
 
-void CalcTrackNormals() {
-	//float v = CalcSpeed(trackVec[0], 0);
-	glm::vec3 n = trackVec[1] - 2.0f*trackVec[0] + trackVec[trackVec.size()-1];
-	float x = 0.5f * n.length();
-	float c = 0.5f * (glm::length(trackVec[1] - trackVec[trackVec.size() - 1]));
-	float k = 1 / (x*x + c * c);
-	n = glm::normalize(n);
-	n = k * n;
-	n = n - glm::vec3(0.0f, grav, 0.0f);
-	n = glm::normalize(n);
-	trackNorms.push_back(n);
-	for (int i = 1; i < trackVec.size()-1; i++) {
-		//v = CalcSpeed(trackVec[i], i);
-		n = trackVec[i + 1] - 2.0f*trackVec[i] + trackVec[i - 1];
-		x = 0.5f * n.length();
-		c = 0.5f * (glm::length(trackVec[i+1] - trackVec[i - 1]));
-		k = 1 / (x*x + c * c);
-		n = glm::normalize(n);
-		n = k * n;
-		n = n - glm::vec3(0.0f, grav, 0.0f);
-		n = glm::normalize(n);
-		trackNorms.push_back(n);
-	}
-	n = trackVec[0] - 2.0f*trackVec[trackVec.size()-1] + trackVec[trackVec.size() - 2];
-	x = 0.5f * n.length();
-	c = 0.5f * (glm::length(trackVec[0] - trackVec[trackVec.size() - 2]));
-	k = 1 / (x*x + c * c);
-	n = glm::normalize(n);
-	n = k * n;
-	n = n - glm::vec3(0.0f, grav, 0.0f);
-	n = glm::normalize(n);
-	trackNorms.push_back(n);
-}
 
-void CalcTrackTangents() {
-	glm::vec3 t;
-	for (int i = 0; i < trackVec.size() - 1; i++) {
-		t = trackVec[i + 1] - trackVec[i];
-		t = glm::normalize(t);
-		trackTans.push_back(t);
-	}
-	t = trackVec[trackVec.size()-1] - trackVec[0];
-	t = glm::normalize(t);
-	trackTans.push_back(t);
-}
-
-void CalcTrackBiNormals() {
-	glm::vec3 b;
-	for (int i = 0; i < trackVec.size(); i++) {
-		b = glm::cross(trackTans[i], trackNorms[i]);
-		b = glm::normalize(b);
-		trackBNs.push_back(b);
-	}
-}
-
-void CalcCorrectTrackTans() {
-	glm::vec3 t;
-	trackTans.clear();
-	for (int i = 0; i < trackVec.size(); i++) {
-		t = glm::cross(trackNorms[i], trackBNs[i]);
-		t = glm::normalize(t);
-		trackTans.push_back(t);
-	}
-}
-
-glm::mat4 CalcModel(glm::vec3 position, int index) {
-	index = index % trackVec.size();
-	glm::mat4 model = glm::mat4(glm::vec4(trackBNs[index],0.0f), glm::vec4(trackNorms[index],0.0f), glm::vec4(trackTans[index],0.0f), glm::vec4(position,1.0f));
+glm::mat4 CalcModel(glm::vec3 position) {
+	//glm::mat4 model = glm::mat4(glm::vec4(trackBNs[index],0.0f), glm::vec4(trackNorms[index],0.0f), glm::vec4(trackTans[index],0.0f), glm::vec4(position,1.0f));
+	
+	glm::mat4 model = glm::translate(glm::mat4(1.0f), position);
 	return model;
 }
 
@@ -669,15 +606,15 @@ void initTrack()
 	
 	//End variables
 	maxHeightIndex = FindMaxHeightIndex(trackVec);
-	currPosition = trackVec[0];
+	//currPosition = trackVec[0];
 	decLength = (trackVec.size() - decIndex)*segLength;
 
-	CalcTrackNormals();
+	/*CalcTrackNormals();
 	CalcTrackTangents();
 	CalcTrackBiNormals();
-	CalcCorrectTrackTans();
+	CalcCorrectTrackTans();*/
 
-	triangleTrack();
+	//triangleTrack();
 	//track = vec3sToFloats(trackVec);
 
 	//The VAO will store enabled vertex attributes, attribute configurations, and vertex buffer objects associated with vertex attributes
